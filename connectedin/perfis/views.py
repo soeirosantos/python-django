@@ -8,12 +8,13 @@ from django.http.response import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 
 def index(request):
-    return render(request, 'perfis/index.html', {"perfis":Perfil.objects.all()})
+	return render(request, 'perfis/index.html', 
+					{"perfis":Perfil.objects.all(), 
+					 "perfil_logado":__get_perfil_logado(request)})
 
 def exibir(request, perfil_id):
     perfil = Perfil.objects.get(id=perfil_id)
     return render(request, 'perfis/perfil.html',{'perfil': perfil})
-
 
 def convidar(request, perfil_id):
         
