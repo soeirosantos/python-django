@@ -7,6 +7,8 @@ class Perfil(models.Model):
     telefone = models.CharField(max_length=15, null=True)
     nome_empresa = models.CharField(max_length=255, null=True)
 
+    contatos = models.ManyToManyField('self')
+
     def convida(self, perfil_convidado):
         if not self.is_convidado(perfil_convidado) and perfil_convidado != self:
             Convite(solicitante=self, convidado=perfil_convidado).save()
@@ -21,3 +23,7 @@ class Perfil(models.Model):
 class Convite(models.Model):
     solicitante = models.ForeignKey(Perfil, related_name="convites_feitos")
     convidado = models.ForeignKey(Perfil, related_name="convites_recebidos")
+
+    def aceita(self):
+        self.convidado.contatos.add(self.solicitante)
+        self.delete()
