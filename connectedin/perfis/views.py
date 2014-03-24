@@ -9,11 +9,15 @@ from django.core.urlresolvers import reverse
 
 from django.http import Http404
 
+from django.contrib.auth.decorators import login_required
+
+@login_required
 def index(request):
 	return render(request, 'perfis/index.html', 
 					{"perfis":Perfil.objects.all(), 
 					 "perfil_logado":__get_perfil_logado(request)})
 
+@login_required
 def exibir(request, perfil_id):
     perfil = get_object_or_404(Perfil, id=perfil_id)
 
@@ -22,6 +26,7 @@ def exibir(request, perfil_id):
     
     return render(request, 'perfis/perfil.html',{'perfil': perfil, 'is_conectado': is_conectado})
 
+@login_required
 def convidar(request, perfil_id):
         
     perfil_a_convidar = get_object_or_404(Perfil, id=perfil_id)
@@ -32,10 +37,11 @@ def convidar(request, perfil_id):
 
     return HttpResponseRedirect( reverse('index') )
 
+@login_required
 def aceitar(request, convite_id):
     convite = get_object_or_404(Convite, id=convite_id)
     convite.aceita()
     return HttpResponseRedirect( reverse('index') )
 
 def __get_perfil_logado(request):
-        return get_object_or_404(Perfil, id=3) # troque "3" por um id previamente cadastrado
+        return request.user.perfil
