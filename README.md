@@ -1,124 +1,257 @@
-## Cap 7) Aceitando Convites e Exibindo nossos Contatos
+## Cap 8) Registrando usuários e criando perfis
 
-1) Agora nos resta aceitar os convites que recebemos. Na lista de convites já podemos ver o link para aceitar um convite, que aciona a função `aceitar` do nosso arquivo de views, passando o id do convite. Vamos implementar a lógica de aceitar convites criando o método `aceita` em nossa classe `Perfil`:
+1) No capítulo anterior finalizamos a parte de nossa aplicação relacionada a interação entre perfis. Agora vamos cuidar do registro de novos usuários/perfis para que possamos tornar nossa aplicação realmente funcional. Mantendo o foco em modularização, vamos criar uma nova app do Django para cuidar somente dos aspectos relacionados aos usuários:
 
-    class Convite(models.Model):
-        solicitante = models.ForeignKey(Perfil, related_name="convites_feitos")
-        convidado = models.ForeignKey(Perfil, related_name="convites_recebidos")
+    $ python manage.py startapp usuarios
 
-        def aceita(self):
+(Não esqueça de incluir essa nova app na variável INSTALLED_APPS do arquivo `connectedin/connectedin/settings.py`)
+
+2) Vamos iniciar definindo um mapeamento de url para a tela de registro de usuários. Crie o arquivo `connectedin/usuarios/urls.py` com o seguinte conteúdo:
+    
+    from django.conf.urls import patterns, url
+
+    urlpatterns = patterns('',
+        url(r'^registrar/$', ???, name="registrar"),
+    )
+
+Não se esqueça, também, de incluir esse arquivo de urls no arquivo `connectedin/connectedin/urls.py`:
+
+    urlpatterns = patterns('',
+        url(r'^', include('perfis.urls')),
+        url(r'^', include('usuarios.urls')),
+        ...
+    )
+
+3) Observe que deixamos com alguns pontos de interrogação o parâmetro onde normalmente informamos nossa função de view. Dessa vez, ao invés de utilizar uma função de view, usaremos uma _class-based view_. Para, isso, simplesmente crie no arquivo `connectedin/usuarios/views.py` uma classe chamada `RegistrarUsuarioView` que extenda a classe `django.views.generic.base.View`:
+
+    from django.views.generic.base import View
+
+    class RegistrarUsuarioView(View):
+        pass
+
+4) Vamos definir nessa classe dois métodos para tratar as requisições feitas a nossa view:
+
+    from django.views.generic.base import View
+
+    class RegistrarUsuarioView(View):
+        
+        def get(self, request, *args, **kwargs):
             pass
 
-2) Atualizamos a view `aceitar`, agora, executando o método `aceita` do convite selecionado:
+        def post(self, request, *args, **kwargs):
+            pass
 
-    ...
+Uma requisição à url que definimos no passo __2__ utilizando o método `HTTP GET` irá acionar nosso método `get`, que será utilizado para exibir a página de registro de usuários. Já uma requisição utilizando `HTTP POST` irá acionar o método `post` responsável por processar os dados enviados pelo formulário na tela e executar as operações necessárias.
 
-    def aceitar(request, convite_id):
-        convite = Convite.objects.get(id=convite_id)
-        convite.aceita()
-        return HttpResponseRedirect( reverse( 'index' ) )
+5) Precisamos, então, de um template para exibir a página com o formulário que irá receber os dados do usuário. Antes de mais nada vamos criar um template base para nossa aplicação, assim como fizemos na app `perfis`. Assim, crie um template base para aplicação usuarios (`connectedin/usuarios/templates/usuarios/base.html`) conforme abaixo:
 
-    ...
+    {% load staticfiles %}
 
-Não esqueça de adicionar o import da classe `Convite`: `from perfis.models import Perfil, Convite`
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-3) Precisamos relacionar dois perfis, então vamos criar um mapeamento _muitos-para-muitos_ na nossa classe `Perfil`:
+        <title>ConnectedIn</title>
+          
+        <link href="{% static "styles/bootstrap.css" %}" rel="stylesheet">
+        <link href="{% static "styles/signin.css" %}" rel="stylesheet">
+
+      </head>
+
+      <body>
+        <div class="container">
+          {% block body %}
+
+          {% endblock %} 
+        </div>  
+         <script src="{% static "scripts/vendor/bootstrap-min.js" %}"></script>
+      </body>
+    </html>
+
+6) Agora vamos escrever o código da página que exibirá o formulário. Crie o arquivo `connectedin/usuarios/templates/usuarios/registrar.html`:
+
+    {% extends "usuarios/base.html" %}
+
+    {% block body %}
+          
+      <form class="form-signin" role="form" action="{% url 'registrar' %}" method="post">
+        {% csrf_token %}
+
+        <h2 class="form-signin-heading">Crie seu usuário</h2>
+
+        <input type="text" id="id_email" name="email" class="form-control" placeholder="Email *" required autofocus>
+        
+        <input type="password" id="id_senha" name="senha" class="form-control"  placeholder="Senha *" required>
+
+        <hr />
+
+        <input type="text" id="id_nome" name="nome" class="form-control" placeholder="Nome *" required >
+
+        <input type="text" id="id_telefone" name="telefone" class="form-control" placeholder="Telefone">
+
+        <input type="text" id="id_nome_empresa" name="nome_empresa" class="form-control" placeholder="Empresa">
+
+        <hr />
+
+        <button class="btn btn-lg btn-primary btn-block" type="submit" value="Login">Registrar</button>
+
+      </form>
+
+    {% endblock %}
+
+7) Vamos atualizar nossos métodos `get` e `post` para renderizar esse template. Nossa view fica assim:
+
+    from django.views.generic.base import View
+
+    from django.shortcuts import render
+
+    class RegistrarUsuarioView(View):
+
+        template_name = 'usuarios/registrar.html'
+        
+        def get(self, request, *args, **kwargs):
+            return render(request, self.template_name)
+
+        def post(self, request, *args, **kwargs):
+            return render(request, self.template_name)
+
+Com isso já podemos visualizar nossa página, apenas altere a o arquivo `connectedin/usuarios/urls.py` e adicione nossa view:
     
+    from django.conf.urls import patterns, url
+    
+    from usuarios.views import RegistrarUsuarioView
+
+    urlpatterns = patterns('',
+        url(r'^registrar/$', RegistrarUsuarioView.as_view(), name="registrar"),
+    )
+
+8) Finalmente, precisamos receber os dados enviados pelo formulário e processá-los no método `post`. Para fazer isso vamos usar um _form_ do Django, uma classe que possa fazer a ligação entre cada um dos campos do nosso template:
+
+    from django import forms
+    from django.contrib.auth.models import User
+
+    class RegistrarUsuarioForm(forms.Form):
+        
+        nome = forms.CharField(required=True)
+        email = forms.EmailField(required=False)
+        senha = forms.CharField(required=False)
+        telefone = forms.CharField(required=True)
+        nome_empresa = forms.CharField(required=True)
+
+        def add_error(self, message):
+            errors = self._errors.setdefault(forms.forms.NON_FIELD_ERRORS, forms.util.ErrorList())
+            errors.append(message)
+
+        def is_valid(self):
+            valid = True
+            if not super(RegistrarUsuarioForm, self).is_valid():
+                self.add_error("Por favor, verifique os dados informados")
+                valid = False
+
+            user_exists = User.objects.filter(username=self.data['email']).exists()
+
+            if user_exists:
+                self.add_error("Usuario ja existente")
+                valid = False
+
+            return valid
+
+9) Aqui aparece a classe `django.contrib.auth.models.User` da API responsável por autenticação e autorização de usuários no Django. Nós utilizaremos esta classe como model para guardar os dados dos nossos usuários. Vamos criar o relacionamento que vincula nosso `Perfil` à classe `User`:
+
     ...
+    from django.contrib.auth.models import User
 
     class Perfil(models.Model):
         
-        ...
+        nome = models.CharField(max_length=255)
+        telefone = models.CharField(max_length=15, null=True)
+        nome_empresa = models.CharField(max_length=255, null=True)
+
         contatos = models.ManyToManyField('self')
 
-    ...
+        usuario = models.OneToOneField(User, related_name="perfil")
 
-4) Agora atualize o método `aceita` da classe `Convite`, passando o perfil do solicitante para a lista de contatos de quem foi convidado:
-    
-    class Convite(models.Model):
-        solicitante = models.ForeignKey(Perfil, related_name="convites_feitos")
-        convidado = models.ForeignKey(Perfil, related_name="convites_recebidos")
-
-        def aceita(self):
-            self.convidado.contatos.add(solicitante)
-            self.delete()
-
-5) Como mexemos no mapeamento da classe `Perfil`, precisamos realizar uma nova sincronização com o banco. Só que, como já existe uma tabela criada para esta classe, o Django não vai efetuar as alterações que desejamos. Vamos utilizar a abordagem mais simples possível para o nosso caso e remover o aquivo `connectedin/db.sqlite3` e deixar o Django regerar tudo. 
-
-    $ python manage.py syncdb
-
-(A forma mais adequada de administrar a evolução do banco de dados em relação as alterações no seu modelo é utilizar uma ferramenta de _migrations_. A ferramenta de migrations mais famosa utilizada com o Django é o _South_ [http://south.aeracode.org/]. A partir da versão 1.7, o Django contará com sua própria solução de migrations)
-
-6) O que acontece se tentarmos acessar nossa página principal? Vai ocorrer um erro informando que o perfil que estamos tentando acessar não existe (nesse caso nosso perfil logado). De fato, nós apagamos todo nosso banco de dados. Observe as linhas contidas no erro:
-    
-    Exception Type: DoesNotExist
-    Exception Value: Perfil matching query does not exist.
-
-A exceção `DoesNotExist` é lançada sempre que o Django não consegue encontrar um object relativo a uma query. Nossas outras views também estão suscetíveis a esse mesmo tipo de erro, então vamos aproveitar e dar um tratamento adequado que vai melhorar nosso código em vários pontos:  
-
-    ...
-    
-    from django.http import Http404
+        @property
+        def email(self):
+            return self.usuario.email
 
     ...
 
-    def __get_perfil_logado(request):
-        try:
-            perfil_logado_fake = Perfil.objects.get(id=3)
-        except Perfil.DoesNotExist:
-            raise Http404
+Observe que removemos o atributo email e estamos delegando ao atributo email da classe `User`
 
-Como esta construção é muito comum, o Django fornece uma função shortcut que economiza algumas linhas: ``
-
-
-    def __get_perfil_logado(request):
-        return get_object_or_404(Perfil, id=3) # troque "3" por um id previamente cadastrado
-
-
-Adicione o import do shortcut: `from django.shortcuts import render, get_object_or_404`
-
-Agora, atualize as views `exibir`, `convidar` e `aceitar` que também estão suscetíveis ao erro `DoesNotExist`.
-
-(Não se esqueça que nosso método `__get_perfil_logado` ainda está com um comportamento _fake_ que será resolvido em breve, por hora continue usando o shell para criar os perfis e convites)
-
-7) Crie na nossa página principal um painel para listar nossos contatos, que será praticamente idêntico aos outros 2 que já criamos anteriormente.
-
-    <div class="panel panel-default">
-        {% with total_de_contatos=perfil_logado.contatos.count %}
-            {% if total_de_contatos %}
-                <div class="panel-heading">
-                        <strong>Você tem {{total_de_contatos}} contato{{ total_de_contatos|pluralize }}</strong>
-                </div>
-                <ul class="list-group">
-                    {% for contato in perfil_logado.contatos %}
-                        <a href="{% url 'exibir' contato.id %}" class="list-group-item">{{ contato.nome }} // {{ contato.email }}</a>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <div class="panel-body">
-                    <p>Você não possui contatos no momento :(</p>
-                </div>
-            {% endif %}
-        {% endwith %}
-    </div>
-
-8) E, por fim, uma última melhoria na exibição de nossas páginas. Observe que no template `perfil.html` mesmo depois de conectados o botão de __convidar__ continua aparecendo. Vamos criar uma condição para sua exibição:
-    
-    ...
-    {% if is_conectado %}
-        <div class="well well-sm">Vocês estão conectados!</div>
-    {% else %}
-        <a href="{% url 'convidar' perfil.id %}"  class="btn btn-success" role="button">convidar</a>
-    {% endif %}
+9) Atualizamos o método `post` da nossa view para processar o formulário:
 
     ...
 
-Atualize a função de view `exibir` para verificar se os perfis estão conectados e disponibilizar a variável `is_conectado` para o template.
+    from usuarios.forms import RegistrarUsuarioForm
+    from django.http import HttpResponseRedirect
+    from django.contrib.auth.models import User
+    from perfis.models import Perfil
 
-    def exibir(request, perfil_id):
-        perfil = get_object_or_404(Perfil, id=perfil_id)
+    class RegistrarUsuarioView(View):
         
-        perfil_logado = __get_perfil_logado(request)
-        is_conectado = perfil in perfil_logado.contatos.all()
+        ...
+
+        def post(self, request, *args, **kwargs):
+            form = RegistrarUsuarioForm(request.POST)
+            
+            if form.is_valid():
+
+                dados_form = form.data
+                
+                usuario = User.objects.create_user(dados_form['email'], dados_form['email'], dados_form['senha'])            
+            
+                perfil = Perfil(nome=dados_form['nome'], 
+                                email=dados_form['email'], 
+                                telefone=dados_form['telefone'],
+                                nome_empresa=dados_form['nome_empresa'],
+                                usuario=usuario)
+
+                perfil.save()
+
+                return HttpResponseRedirect( reverse('login') )
+
+            return render(request, self.template_name, {'form': form})
+
+Repare que, pelo que vimos até aqui, o retorno do nosso método `post` faz um `HttpResponseRedirect` para um suposto mapeamento de url `login`, que nós não temos ainda, certo? Não se preocupe com isso agora, após cadastrar um usuário será exibida uma mensagem de erro que nós iremos resolver no próximo capítulo.
+
+10) Agora fazemos a ligação entre o template e o nosso formulário:
+
+    ...
+
+      <form class="form-signin" role="form" action="{% url 'registrar' %}" method="post">
+        {% csrf_token %}
+
+        <h2 class="form-signin-heading">Crie seu usuário</h2>
+
+        <input type="text" id="id_email" name="email" value="{{form.data.email}}" class="form-control" placeholder="Email *" required autofocus>
         
-        return render(request, 'perfis/perfil.html',{'perfil': perfil, 'is_conectado': is_conectado})
+        <input type="password" id="id_senha" name="senha" value="{{form.data.senha}}" class="form-control"  placeholder="Senha *" required>
+
+        <hr />
+
+        <input type="text" id="id_nome" name="nome" value="{{form.data.nome}}" class="form-control" placeholder="Nome *" required >
+
+        <input type="text" id="id_telefone" name="telefone" value="{{form.data.telefone}}" class="form-control" placeholder="Telefone">
+
+        <input type="text" id="id_nome_empresa" name="nome_empresa" value="{{form.data.nome_empresa}}" class="form-control" placeholder="Empresa">
+
+        <hr />
+
+        <button class="btn btn-lg btn-primary btn-block" type="submit" value="Login">Registrar</button>
+        
+        <hr />
+
+        {% if form.errors %}
+          <div class="alert alert-danger">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+            {{form.non_field_errors}}
+          </div>
+        {% endif %}
+
+      </form>
+
+    ...

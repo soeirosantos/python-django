@@ -30,12 +30,12 @@ def convidar(request, perfil_id):
 
     perfil_logado.convida(perfil_a_convidar)
 
-    return HttpResponseRedirect( reverse( 'index' ) )
+    return HttpResponseRedirect( reverse('index') )
 
 def aceitar(request, convite_id):
     convite = get_object_or_404(Convite, id=convite_id)
     convite.aceita()
-    return HttpResponseRedirect( reverse( 'index' ) )
+    return HttpResponseRedirect( reverse('index') )
 
 def __get_perfil_logado(request):
-    return get_object_or_404(Perfil, id=3) # troque "3" por um id previamente cadastrado
+        return get_object_or_404(Perfil, id=3) # troque "3" por um id previamente cadastrado

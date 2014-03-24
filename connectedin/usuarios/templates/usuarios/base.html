@@ -1,0 +1,25 @@
+{% load staticfiles %}
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>ConnectedIn</title>
+      
+    <link href="{% static "styles/bootstrap.css" %}" rel="stylesheet">
+    <link href="{% static "styles/signin.css" %}" rel="stylesheet">
+
+  </head>
+
+  <body>
+    <div class="container">
+      {% block body %}
+
+      {% endblock %} 
+    </div>  
+     <script src="{% static "scripts/vendor/bootstrap-min.js" %}"></script>
+  </body>
+</html>
