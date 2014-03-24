@@ -1,81 +1,48 @@
-## Cap 2) Hello World + Aplicação
+## Cap 3) Modelo + Mapeamento
 
-1) Criando a aplicação
-
-    $ python manage.py startapp perfis
-
-2) Adicione a aplicação criada à lista de aplicações do projeto. Para fazer isso altere o arquivo `connectedin/connectedin/settings.py` e adicione o nome da aplicação na tupla __INSTALLED_APPS__.
-
-    INSTALLED_APPS = (
-        'django.contrib.admin',
-        'django.contrib.auth',
-        'django.contrib.contenttypes',
-        'django.contrib.sessions',
-        'django.contrib.messages',
-        'django.contrib.staticfiles',
-        'perfis',
-    )
-
-3) Podemos, agora, exibir nossa própria mensagem no browser. Então, abra o arquivo `connectedin/perfis/views.py` e adicione uma função que receba um parâmetro chamado request e retorne um objeto do tipo HttpResponse:
-
-    from django.http import HttpResponse
-
-    def index(request):
-        return HttpResponse("Bem-vindo a ConnectedIn!")
-
-4) Para executarmos nossa view a partir de uma requisição do browser precisamos definir qual URL será acessada. Vamos, então, editar o arquivo `connectedin/connectedin/urls.py` e adicionar o nosso padrão de URL:
+1) Criando o modelo: no arquivo `connectedin/perfis/models.py` vamos criar a classe `Perfil` que vai conter os dados e comportamentos dos nossos perfis. E, aproveitamos para já adicionar alguns atributos.
 
     ...
-    urlpatterns = patterns('',
-       url(r'^$', 'perfis.views.index', name='home'),
-        ...
-    )
 
-Acesse http://localhost:8000 e veja a mensagem que passamos na resposta.
+    class Perfil(models.Model):
+        
+        nome = models.CharField(max_length=255, null=False)
+        email = models.CharField(max_length=255, null=False)     
+        telefone = models.CharField(max_length=15, null=True)
+        nome_empresa = models.CharField(max_length=255, null=True)
 
-5) Vamos melhorar um pouco a nossa configuração de URL e trazer a configuração pra dentro da aplicação `perfis`. Vamos criar um arquivo `connectedin/perfis/urls.py` e adicionar o código:
+2) Vamos gerar as tabelas do banco de dados a partir da definição da classe:
 
-    from django.conf.urls import patterns, url
-    from perfis import views
+    $ python manage.py syncdb
 
-    urlpatterns = patterns('',
-        url(r'^$', views.index, name='index'),
-    )
+(observe que ele cria outras tabelas referentes a outras aplicações que temos instaladas `settings.py > INSTALLED_APPS`)
 
-Agora acesse o arquivo `connectedin/connectedin/urls.py` e atualize o código para incluir o arquivo de URLs da nossa aplicação `perfis`:
+Onde foram criadas as tabelas? O Django está usando uma configuração padrão (`settings.py > DATABASES`) para um banco sqlite, veremos como customizar essa configuração mais a frente.
 
-    ...
-    urlpatterns = patterns('',
-        url(r'^', include('perfis.urls')),
-        ...
-    )
-    ...
+3) Vamos acessar o shell do django e trabalhar um pouco com os métodos que são criados dinamicamente para o nosso model
 
-Verifique no browser que nada mudou, somente melhoramos a modularização do nosso código.
+    $ python manage.py shell
 
-6) Nossa rede social terá, basicamente, quatro funcionalidades:
+    $ from perfis.models import Perfil
 
-    * mostrar nossa página principal com os perfis que estamos conectados;
-    * mostrar a página de um perfil específico;
-    * convidar um perfil a fazer parte da nossa rede;
-    * e aceitar um convite
+Incluindo:
 
-Agora que já sabemos como criar views que podem ser acessadas a partir do browser, vamos criar uma função de view para cada uma dessas funcionalidades. No arquivo `connectedin/perfis/views.py` adicione as seguintes views:
+    $ p = Perfil(nome="Oswaldo", email="oswaldo@gmail.com")
 
-    def exibir(request, perfil_id):
-        return HttpResponse("Exibindo perfil: %s" % perfil_id)
+    $ p.save()
 
-    def convidar(request, perfil_id):
-        return HttpResponse("Convidando perfil: %s" % perfil_id)
+Lendo um:
 
-    def aceitar(request, convite_id):
-        return HttpResponse("Aceitando convite: %s" % convite_id)
+    $ p = Perfil.objects.get(id=1)
 
-Agora configure as URLs para cada nova view:
+Atualizando:
 
-    urlpatterns = patterns('',
-        ...
-          url(r'^perfis/(?P<perfil_id>\d+)$', views.exibir, name='exibir'),
-          url(r'^perfis/(?P<perfil_id>\d+)/convidar$', views.convidar, name='convidar'),
-          url(r'^convites/(?P<convite_id>\d+)/aceitar$', views.aceitar, name='aceitar'),
-    )
+    $ p.nome = "Oswaldo alterado"
+
+    $ p.save()
+
+Lendo vários:
+    
+    $ Perfil.objects.all()
+
+Vamos utilizar esses métodos para construir nossas funcionalidades.
